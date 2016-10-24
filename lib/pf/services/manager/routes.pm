@@ -75,9 +75,12 @@ Since it's never really stopped than we check if the fake PID exists
 
 sub isAlive {
     my ($self,$pid) = @_;
+    my $logger = get_logger();
     my $result;
     $pid = $self->pid;
     my $route_exist = '';
+    my $routes_applied = 0;
+    my $layer3 = 0;
 
     foreach my $network ( keys %ConfigNetworks ) {
         # shorter, more convenient local accessor
@@ -85,12 +88,13 @@ sub isAlive {
 
 
         if ( defined($net{'next_hop'}) && ($net{'next_hop'} =~ /^(?:\d{1,3}\.){3}\d{1,3}$/) ) {
+            $layer3 ++;
             $route_exist = $network;
+            $routes_applied = defined(pf_run("route | grep ".$route_exist));
         }
     }
 
-    my $routes_applied = defined(pf_run("route | grep ".$route_exist));
-    return (defined($pid) && $routes_applied);
+    return (defined($pid) && ($routes_applied || !$layer3) );
 }
 
 =head2 manageStaticRoute
